@@ -226,13 +226,12 @@ function bindTop() {
 }
 
 function authView(su) {
-  view = 'auth'; setWM(true); let year = 0;
+  view = 'auth'; setWM(true); let year = ONLY_YEAR;
   app.innerHTML = `<div class="card"><h2>${su ? 'حساب جديد' : 'تسجيل الدخول'}</h2>` +
-    (su ? `<input id="n" placeholder="الاسم"><div class="row" id="yr">${[1,2,3].map(y => `<button data-v="${y}">فرقة ${y}${BATCH[y] ? ' (دفعة ' + BATCH[y] + ')' : ''}</button>`).join('')}</div>` : '') +
+    (su ? `<input id="n" placeholder="الاسم">` : '') +
     `<input id="p" inputmode="tel" placeholder="رقم التليفون"><input id="w" type="password" placeholder="كلمة السر">
     <button class="btn" id="go">${su ? 'تسجيل' : 'دخول'}</button><p class="msg" id="m"></p>
     <button class="link" id="sw">${su ? 'عندي حساب' : 'عمل حساب جديد'}</button></div>`;
-  if (su) pick('#yr', v => year = +v);
   on('#sw', () => authView(!su));
   on('#go', async () => {
     const m = t => { $('#m').textContent = t }, p = toEn($('#p').value), w = $('#w').value;
@@ -242,7 +241,7 @@ function authView(su) {
         const r = await fetch(`${CFG.url}/functions/v1/signup`, {
           method: 'POST',
           headers: {'Content-Type':'application/json', apikey: CFG.key},
-          body: JSON.stringify({name: $('#n').value, year, phone: p, password: w, device_id: dev})
+          body: JSON.stringify({name: $('#n').value, year, phone: p, password: w, device_id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random())})
         });
         const j = await r.json().catch(() => ({}));
         if (!j.ok) return m(j.error || 'حصلت مشكلة، حاول تاني');
@@ -312,11 +311,13 @@ async function fetchByIds(ids) {
 }
 
 // 1) years
+const ONLY_YEAR = 2, ONLY_BLOCK = /^musculoskeletal$/i;   // الموقع ده للفرقة 2 وبلوك MUSCULOSKELETAL بس
+const onlyBlockName = y => { const x = subs.find(z => z.year === y && ONLY_BLOCK.test(String(z.block).trim())); return x ? x.block : null };
 async function homeView() {
   view = 'home'; curYear = 0; curBlock = null; curSub = null; curLec = null;
   const {data: s} = await sb.from('subjects').select('*').order('year').order('block').order('name');
   subs = s || [];
-  if (!me.is_admin) return blocksView(me.year);   // الطالب يشوف فرقته بس
+  return blocksView(ONLY_YEAR);   // الموقع ده للفرقة 2 بس
   const cnt = y => subs.filter(x => x.year === y).length;
   app.innerHTML = topBar() + '<h2>اختار الفرقة</h2>' + [1, 2, 3].map(y =>
     '<button class="sub' + (y === me.year ? ' mine' : '') + '" data-y="' + y + '"><b>' + yName(y) + '</b>' + (y === me.year ? ' <small>(فرقتك)</small>' : '') +
@@ -352,6 +353,7 @@ function icon(name) {
 // 2) blocks of a year
 function blocksView(y) {
   view = 'blocks'; curYear = y; curBlock = null; curSub = null; curLec = null;
+  { const ob = onlyBlockName(y); if (ob) return subjectsView(y, ob) }
   const list = subs.filter(x => x.year === y);
   const blocks = [...new Set(list.map(x => x.block))].sort((a, b) => {
     const o = BLOCK_ORDER[y] || [], ia = o.indexOf(a), ib = o.indexOf(b);
@@ -374,14 +376,14 @@ function blocksView(y) {
 function subjectsView(y, block) {
   view = 'subjects'; curYear = y; if (block !== undefined) curBlock = block; curSub = null; curLec = null;
   const list = subs.filter(x => x.year === y && x.block === curBlock);
-  let html = topBar() + BK('‹ البلوكات') + crumb() + '<h2>' + esc(curBlock) + '</h2>';
+  let html = topBar() + (onlyBlockName(y) ? '' : BK('‹ البلوكات')) + crumb() + '<h2>' + esc(curBlock) + '</h2>';
   if (!list.length) html += '<p>لسه مفيش مواد</p>';
   list.forEach(x => { html += '<button class="sub" data-id="' + x.id + '">' + icon(x.name) + '<b>' + esc(x.name) + '</b></button>' });
   app.innerHTML = html; bindTop(); on('#bk', () => blocksView(curYear));
   document.querySelectorAll('.sub').forEach(b => b.onclick = () => lecturesView(subs.find(x => x.id === +b.dataset.id)));
 }
 
-const backFromLec = () => subs.filter(x => x.year === curYear && x.block === curBlock).length === 1 ? blocksView(curYear) : subjectsView(curYear);
+const backFromLec = () => subs.filter(x => x.year === curYear && x.block === curBlock).length === 1 && !onlyBlockName(curYear) ? blocksView(curYear) : subjectsView(curYear);
 
 // 4) lectures of a subject (a lecture = the "chapter" column)
 async function lecturesView(sub) {
