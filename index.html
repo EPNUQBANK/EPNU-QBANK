@@ -402,11 +402,13 @@ async function occDecks(sub) {
   let h = topBar() + BK('‹ المواد') + crumb() + '<h2>' + icon(sub.name) + esc(sub.name) + '</h2>';
   if (!all.length) h += '<p>لسه مفيش كروت</p>';
   decks.forEach(d => {
-    const a = occItems(all.filter(c => c.deck === d)), k = a.filter(x => p[x.key] === 1).length;
-    h += '<button class="sub occd" data-d="' + esc(d) + '"><b>' + esc(d) + '</b><br><small>' + k + ' / ' + a.length + ' كارت</small><div class="pb"><i style="width:' + (a.length ? k * 100 / a.length : 0) + '%"></i></div></button>';
+    const a = occItems(all.filter(c => c.deck === d)), k = a.filter(x => p[x.key] === 1).length, w = a.filter(x => p[x.key] === 0).length;
+    h += '<div class="lrow"><button class="sub occd" data-d="' + esc(d) + '"><b>' + esc(d) + '</b><br><small>' + k + ' / ' + a.length + ' كارت</small><div class="pb"><i style="width:' + (a.length ? k * 100 / a.length : 0) + '%"></i></div></button>' +
+      '<button class="wbox occw' + (w ? '' : ' off') + '" data-d="' + esc(d) + '" data-w="' + w + '" title="غلطاتي"><span>❌</span><b>' + w + '</b></button></div>';
   });
   app.innerHTML = h; bindTop(); on('#bk', backFromLec);
   document.querySelectorAll('.occd').forEach(b => b.onclick = () => { occDeck = occItems(all.filter(c => c.deck === b.dataset.d)); occI = 0; occShown = {}; occCard() });
+  document.querySelectorAll('.occw').forEach(b => b.onclick = () => { if (!+b.dataset.w) return; occDeck = occItems(all.filter(c => c.deck === b.dataset.d)).filter(x => p[x.key] === 0); occI = 0; occShown = {}; occCard() });
 }
 function occCard() {
   view = 'occcard'; const it = occDeck[occI], c = it.c, b = c.boxes[it.j], rev = !!occShown[it.key], p = occProg();
