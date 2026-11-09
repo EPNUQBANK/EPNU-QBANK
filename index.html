@@ -403,21 +403,21 @@ async function occDecks(sub) {
   const decks = [...new Set(all.map(c => c.deck))];
   let h = topBar() + BK('‹ المواد') + crumb() + '<h2>' + icon(sub.name) + esc(sub.name) + '</h2>';
   if (!all.length) h += '<p>لسه مفيش كروت</p>';
-  if (all.length) { const sv = occSv(); h += '<button class="sub" id="occsv"><b>🔖 المحفوظات</b><br><small>' + occItems(all).filter(x => sv.includes(x.key)).length + ' كارت محفوظ</small></button>' }
   decks.forEach(d => {
-    const a = occItems(all.filter(c => c.deck === d)), k = a.filter(x => p[x.key] === 1).length, w = a.filter(x => p[x.key] === 0).length;
+    const a = occItems(all.filter(c => c.deck === d)), k = a.filter(x => p[x.key] === 1).length, w = a.filter(x => p[x.key] === 0).length, sv = occSv(), n = a.filter(x => sv.includes(x.key)).length;
     h += '<div class="lrow"><button class="sub occd" data-d="' + esc(d) + '"><b>' + esc(d) + '</b><br><small>' + k + ' / ' + a.length + ' كارت</small><div class="pb"><i style="width:' + (a.length ? k * 100 / a.length : 0) + '%"></i></div></button>' +
-      '<button class="wbox occw' + (w ? '' : ' off') + '" data-d="' + esc(d) + '" data-w="' + w + '" title="غلطاتي"><span>❌</span><b>' + w + '</b></button></div>';
+      '<button class="wbox occw' + (w ? '' : ' off') + '" data-d="' + esc(d) + '" data-w="' + w + '" title="غلطاتي"><span>❌</span><b>' + w + '</b></button>' +
+      '<button class="wbox occs' + (n ? '' : ' off') + '" data-d="' + esc(d) + '" data-w="' + n + '" title="المحفوظات"><span>🔖</span><b>' + n + '</b></button></div>';
   });
   app.innerHTML = h; bindTop(); on('#bk', backFromLec);
   document.querySelectorAll('.occd').forEach(b => b.onclick = () => { occDeck = occItems(all.filter(c => c.deck === b.dataset.d)); occI = 0; occShown = {}; occCard(false) });
-  on('#occsv', () => { const sv = occSv(); const a = occItems(all).filter(x => sv.includes(x.key)); if (!a.length) return alert('مفيش كروت محفوظة'); occDeck = a; occI = 0; occShown = {}; occCard(true) });
+  document.querySelectorAll('.occs').forEach(b => b.onclick = () => { if (!+b.dataset.w) return; const sv = occSv(); occDeck = occItems(all.filter(c => c.deck === b.dataset.d)).filter(x => sv.includes(x.key)); occI = 0; occShown = {}; occCard(true) });
   document.querySelectorAll('.occw').forEach(b => b.onclick = () => { if (!+b.dataset.w) return; occDeck = occItems(all.filter(c => c.deck === b.dataset.d)).filter(x => p[x.key] === 0); occI = 0; occShown = {}; occCard(false) });
 }
 function occCard(fromSaved) {
   if (fromSaved !== undefined) occFS = !!fromSaved;
   view = 'occcard'; const it = occDeck[occI], c = it.c, b = c.boxes[it.j], rev = !!occShown[it.key], p = occProg();
-  let h = topBar() + BK('‹ ' + (occFS ? 'المحفوظات' : esc(c.deck))) + '<div class="crumb">' + (occI + 1) + ' / ' + occDeck.length + (p[it.key] === 1 ? ' ✅' : p[it.key] === 0 ? ' ❌' : '') + '</div><div style="text-align:end"><button class="svb" id="osv">' + (occSv().includes(it.key) ? '🔖 محفوظ' : '🔖 احفظ') + '</button></div>';
+  let h = topBar() + BK('‹ ' + esc(c.deck)) + '<div class="crumb">' + (occI + 1) + ' / ' + occDeck.length + (p[it.key] === 1 ? ' ✅' : p[it.key] === 0 ? ' ❌' : '') + '</div><div style="text-align:end"><button class="svb" id="osv">' + (occSv().includes(it.key) ? '🔖 محفوظ' : '🔖 احفظ') + '</button></div>';
   h += '<div style="position:relative;line-height:0;border-radius:10px;overflow:hidden;background:#fff"><img src="' + occSrc(c) + '" style="width:100%;display:block;min-height:60px">';
   c.boxes.forEach((x, j) => {
     const me = j === it.j; if (me && rev) return;
