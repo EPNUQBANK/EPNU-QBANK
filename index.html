@@ -384,22 +384,25 @@ function subjectsView(y, block) {
 const backFromLec = () => subs.filter(x => x.year === curYear && x.block === curBlock).length === 1 && !onlyBlockName(curYear) ? blocksView(curYear) : subjectsView(curYear);
 
 // ===== Image Occlusion (Practical Anatomy) =====
-let occFS = false, occData = null, occDeck = null, occI = 0, occShown = {};
+let occFS = false, occData = null, occFor = null, occDeck = null, occI = 0, occShown = {};
 const occProg = () => { try { return JSON.parse(ls.get('occ_prog2') || '{}') } catch (e) { return {} } };
 const occSet = (id, v) => { const p = occProg(); p[id] = v; ls.set('occ_prog2', JSON.stringify(p)) };
 const occSv = () => { try { return JSON.parse(ls.get('occ_saved') || '[]') } catch (e) { return [] } };
 const occTog = k => { const a = occSv(), i = a.indexOf(k); i < 0 ? a.push(k) : a.splice(i, 1); ls.set('occ_saved', JSON.stringify(a)); return i < 0 };
-const occSrc = c => 'occ_part' + ({'Scapular & Pectoral': 1, 'Forearm': 2, 'Thigh & Gluteal': 3, 'Leg': 4}[c.deck] || 1) + '/' + String(c.img).split('/').pop();
+const occSrc = c => c._b ? c._b + '/' + String(c.img).split('/').pop() : 'occ_part' + ({'Scapular & Pectoral': 1, 'Forearm': 2, 'Thigh & Gluteal': 3, 'Leg': 4}[c.deck] || 1) + '/' + String(c.img).split('/').pop();
 const OCC_COL = {name: '#ffd54a', nerve: '#7ac7ff', action: '#8be6a5'};
 const occItems = arr => { const r = []; arr.forEach(c => { const seen = {}; c.boxes.forEach((b, j) => { r.push({c, j, key: c.id + '_' + j}) }) }); return r };
-async function occLoad() {
-  if (occData) return occData;
-  try { const r = await fetch('occ_part1/cards.json?v=' + Date.now(), {cache: 'no-store'}); occData = await r.json() } catch (e) { occData = [] }
-  return occData;
+async function occLoad(sub) {
+  const hist = /histo/i.test(sub.name), key = hist ? 'h' : 'p';
+  if (occData && occFor === key) return occData;
+  const dir = hist ? 'occ_histo' : 'occ_part1';
+  try { const r = await fetch(dir + '/cards.json?v=' + Date.now(), {cache: 'no-store'}); occData = await r.json() } catch (e) { occData = [] }
+  if (hist) occData.forEach(c => c._b = 'occ_histo');
+  occFor = key; return occData;
 }
 async function occDecks(sub) {
   view = 'occdecks'; curSub = sub; curLec = null;
-  loading(); const all = await occLoad(); const p = occProg();
+  loading(); const all = await occLoad(sub); const p = occProg();
   const decks = [...new Set(all.map(c => c.deck))];
   let h = topBar() + BK('‹ المواد') + crumb() + '<h2>' + icon(sub.name) + esc(sub.name) + '</h2>';
   if (!all.length) h += '<p>لسه مفيش كروت</p>';
@@ -440,7 +443,7 @@ function occCard(fromSaved) {
 // 4) lectures of a subject (a lecture = the "chapter" column)
 async function lecturesView(sub) {
   view = 'lectures'; curSub = sub; curLec = null;
-  if (/practical/i.test(sub.name)) return occDecks(sub);
+  if (/practical|histo/i.test(sub.name)) return occDecks(sub);
   if (!unlocked()) {
     loading();
     const {data: ls, error: le} = await sb.rpc('list_lectures', {sid: sub.id});
