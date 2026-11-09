@@ -412,7 +412,11 @@ function occCard() {
   view = 'occcard'; const it = occDeck[occI], c = it.c, b = c.boxes[it.j], rev = !!occShown[it.key], p = occProg();
   let h = topBar() + BK('‹ ' + esc(c.deck)) + '<div class="crumb">' + (occI + 1) + ' / ' + occDeck.length + (p[it.key] === 1 ? ' ✅' : p[it.key] === 0 ? ' ❌' : '') + '</div>';
   h += '<div style="position:relative;line-height:0;border-radius:10px;overflow:hidden;background:#fff"><img src="' + occSrc(c) + '" style="width:100%;display:block;min-height:60px">';
-  h += '<div id="ob" style="position:absolute;left:' + b.x * 100 + '%;top:' + b.y * 100 + '%;width:' + b.w * 100 + '%;height:' + b.h * 100 + '%;background:' + OCC_COL[b.t] + ';border:2px solid #0006;border-radius:4px;box-sizing:border-box;cursor:pointer;display:' + (rev ? 'none' : 'block') + '"></div></div>';
+  c.boxes.forEach((x, j) => {
+    const me = j === it.j; if (me && rev) return;
+    h += '<div ' + (me ? 'id="ob" ' : '') + 'style="position:absolute;left:' + x.x * 100 + '%;top:' + x.y * 100 + '%;width:' + x.w * 100 + '%;height:' + x.h * 100 + '%;box-sizing:border-box;border-radius:4px;' + (me ? 'background:#ffd54a;border:3px solid #c0262d;cursor:pointer' : 'background:#9aa3b2;border:2px solid #0004') + '"></div>';
+  });
+  h += '</div>';
   h += rev ? '<div class="row"><button id="ono" style="border-color:#d64545">❌ مش عارفها</button><button id="oyes" style="border-color:#2e9e5b">✅ عارفها</button></div>'
            : '<button class="btn" id="osh">أظهر الإجابة</button>';
   h += '<div class="row"><button id="opv"' + (occI ? '' : ' disabled') + '>‹ السابق</button><button id="onx"' + (occI < occDeck.length - 1 ? '' : ' disabled') + '>التالي ›</button></div>';
