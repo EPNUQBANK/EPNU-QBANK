@@ -385,10 +385,11 @@ const backFromLec = () => subs.filter(x => x.year === curYear && x.block === cur
 
 // ===== Image Occlusion (Practical Anatomy) =====
 let occData = null, occDeck = null, occI = 0, occShown = {};
-const occProg = () => { try { return JSON.parse(ls.get('occ_prog') || '{}') } catch (e) { return {} } };
-const occSet = (id, v) => { const p = occProg(); p[id] = v; ls.set('occ_prog', JSON.stringify(p)) };
+const occProg = () => { try { return JSON.parse(ls.get('occ_prog2') || '{}') } catch (e) { return {} } };
+const occSet = (id, v) => { const p = occProg(); p[id] = v; ls.set('occ_prog2', JSON.stringify(p)) };
 const occSrc = c => 'occ_part' + ({'Scapular & Pectoral': 1, 'Forearm': 2, 'Thigh & Gluteal': 3, 'Leg': 4}[c.deck] || 1) + '/' + String(c.img).split('/').pop();
 const OCC_COL = {name: '#ffd54a', nerve: '#7ac7ff', action: '#8be6a5'};
+const occItems = arr => { const r = []; arr.forEach(c => { const seen = {}; c.boxes.forEach((b, j) => { r.push({c, j, key: c.id + '_' + j}) }) }); return r };
 async function occLoad() {
   if (occData) return occData;
   try { const r = await fetch('occ_part1/cards.json?v=' + Date.now(), {cache: 'no-store'}); occData = await r.json() } catch (e) { occData = [] }
@@ -401,30 +402,26 @@ async function occDecks(sub) {
   let h = topBar() + BK('‹ المواد') + crumb() + '<h2>' + icon(sub.name) + esc(sub.name) + '</h2>';
   if (!all.length) h += '<p>لسه مفيش كروت</p>';
   decks.forEach(d => {
-    const a = all.filter(c => c.deck === d), k = a.filter(c => p[c.id] === 1).length;
+    const a = occItems(all.filter(c => c.deck === d)), k = a.filter(x => p[x.key] === 1).length;
     h += '<button class="sub occd" data-d="' + esc(d) + '"><b>' + esc(d) + '</b><br><small>' + k + ' / ' + a.length + ' كارت</small><div class="pb"><i style="width:' + (a.length ? k * 100 / a.length : 0) + '%"></i></div></button>';
   });
   app.innerHTML = h; bindTop(); on('#bk', backFromLec);
-  document.querySelectorAll('.occd').forEach(b => b.onclick = () => { occDeck = all.filter(c => c.deck === b.dataset.d); occI = 0; occCard() });
+  document.querySelectorAll('.occd').forEach(b => b.onclick = () => { occDeck = occItems(all.filter(c => c.deck === b.dataset.d)); occI = 0; occShown = {}; occCard() });
 }
 function occCard() {
-  view = 'occcard'; const c = occDeck[occI], rev = !!occShown[c.id], p = occProg();
-  let h = topBar() + BK('‹ ' + esc(c.deck)) + '<div class="crumb">' + (occI + 1) + ' / ' + occDeck.length + (p[c.id] === 1 ? ' ✅' : p[c.id] === 0 ? ' ❌' : '') + '</div>';
-  h += '<div style="position:relative;line-height:0;border-radius:10px;overflow:hidden;background:#fff"><img src="' + occSrc(c) + '" style="width:100%;display:block;min-height:60px" onerror="this.insertAdjacentHTML(\'afterend\',\'<div style=&quot;line-height:1.5;padding:10px;color:#c00;font-size:13px;direction:ltr&quot;>\'+this.getAttribute(\'src\')+\'</div>\')">';
-  c.boxes.forEach((b, j) => {
-    const hid = !rev && !(occShown[c.id + '_' + j]);
-    h += '<div class="ob" data-j="' + j + '" style="position:absolute;left:' + b.x * 100 + '%;top:' + b.y * 100 + '%;width:' + b.w * 100 + '%;height:' + b.h * 100 + '%;background:' + OCC_COL[b.t] + ';border:2px solid #0006;border-radius:4px;box-sizing:border-box;' + (hid ? '' : 'display:none;') + 'cursor:pointer;color:#0008;font:700 14px/1 sans-serif;display:' + (hid ? 'flex' : 'none') + ';align-items:center;justify-content:center">' + ({name: 'الاسم', nerve: 'النيرف', action: 'الاكشن'}[b.t]) + '</div>';
-  });
-  h += '</div>';
+  view = 'occcard'; const it = occDeck[occI], c = it.c, b = c.boxes[it.j], rev = !!occShown[it.key], p = occProg();
+  let h = topBar() + BK('‹ ' + esc(c.deck)) + '<div class="crumb">' + (occI + 1) + ' / ' + occDeck.length + (p[it.key] === 1 ? ' ✅' : p[it.key] === 0 ? ' ❌' : '') + '</div>';
+  h += '<div style="position:relative;line-height:0;border-radius:10px;overflow:hidden;background:#fff"><img src="' + occSrc(c) + '" style="width:100%;display:block;min-height:60px">';
+  h += '<div id="ob" style="position:absolute;left:' + b.x * 100 + '%;top:' + b.y * 100 + '%;width:' + b.w * 100 + '%;height:' + b.h * 100 + '%;background:' + OCC_COL[b.t] + ';border:2px solid #0006;border-radius:4px;box-sizing:border-box;cursor:pointer;display:' + (rev ? 'none' : 'block') + '"></div></div>';
   h += rev ? '<div class="row"><button id="ono" style="border-color:#d64545">❌ مش عارفها</button><button id="oyes" style="border-color:#2e9e5b">✅ عارفها</button></div>'
-           : '<button class="btn" id="osh">أظهر الإجابة</button><div class="crumb" style="text-align:center">أو دوس على أي مربع يظهر لوحده</div>';
+           : '<button class="btn" id="osh">أظهر الإجابة</button>';
   h += '<div class="row"><button id="opv"' + (occI ? '' : ' disabled') + '>‹ السابق</button><button id="onx"' + (occI < occDeck.length - 1 ? '' : ' disabled') + '>التالي ›</button></div>';
   app.innerHTML = h; bindTop(); window.scrollTo(0, 0);
   on('#bk', () => occDecks(curSub));
-  document.querySelectorAll('.ob').forEach(e => e.onclick = () => { occShown[c.id + '_' + e.dataset.j] = 1; e.style.display = 'none'; });
-  on('#osh', () => { occShown[c.id] = 1; occCard() });
+  const show = () => { occShown[it.key] = 1; occCard() };
+  on('#osh', show); on('#ob', show);
   const nx = () => { occI < occDeck.length - 1 ? (occI++, occCard()) : occDecks(curSub) };
-  on('#oyes', () => { occSet(c.id, 1); nx() }); on('#ono', () => { occSet(c.id, 0); nx() });
+  on('#oyes', () => { occSet(it.key, 1); nx() }); on('#ono', () => { occSet(it.key, 0); nx() });
   on('#opv', () => { if (occI) { occI--; occCard() } }); on('#onx', () => { if (occI < occDeck.length - 1) { occI++; occCard() } });
 }
 
