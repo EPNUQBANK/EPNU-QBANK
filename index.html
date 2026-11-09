@@ -387,10 +387,11 @@ const backFromLec = () => subs.filter(x => x.year === curYear && x.block === cur
 let occData = null, occDeck = null, occI = 0, occShown = {};
 const occProg = () => { try { return JSON.parse(ls.get('occ_prog') || '{}') } catch (e) { return {} } };
 const occSet = (id, v) => { const p = occProg(); p[id] = v; ls.set('occ_prog', JSON.stringify(p)) };
+const occSrc = c => 'occ_part' + ({'Scapular & Pectoral': 1, 'Forearm': 2, 'Thigh & Gluteal': 3, 'Leg': 4}[c.deck] || 1) + '/' + String(c.img).split('/').pop();
 const OCC_COL = {name: '#ffd54a', nerve: '#7ac7ff', action: '#8be6a5'};
 async function occLoad() {
   if (occData) return occData;
-  try { const r = await fetch('occ_part1/cards.json'); occData = await r.json() } catch (e) { occData = [] }
+  try { const r = await fetch('occ_part1/cards.json?v=' + Date.now(), {cache: 'no-store'}); occData = await r.json() } catch (e) { occData = [] }
   return occData;
 }
 async function occDecks(sub) {
@@ -409,7 +410,7 @@ async function occDecks(sub) {
 function occCard() {
   view = 'occcard'; const c = occDeck[occI], rev = !!occShown[c.id], p = occProg();
   let h = topBar() + BK('‹ ' + esc(c.deck)) + '<div class="crumb">' + (occI + 1) + ' / ' + occDeck.length + (p[c.id] === 1 ? ' ✅' : p[c.id] === 0 ? ' ❌' : '') + '</div>';
-  h += '<div style="position:relative;line-height:0;border-radius:10px;overflow:hidden;background:#fff"><img src="' + c.img + '" style="width:100%;display:block">';
+  h += '<div style="position:relative;line-height:0;border-radius:10px;overflow:hidden;background:#fff"><img src="' + occSrc(c) + '" style="width:100%;display:block;min-height:60px" onerror="this.insertAdjacentHTML(\'afterend\',\'<div style=&quot;line-height:1.5;padding:10px;color:#c00;font-size:13px;direction:ltr&quot;>\'+this.getAttribute(\'src\')+\'</div>\')">';
   c.boxes.forEach((b, j) => {
     const hid = !rev && !(occShown[c.id + '_' + j]);
     h += '<div class="ob" data-j="' + j + '" style="position:absolute;left:' + b.x * 100 + '%;top:' + b.y * 100 + '%;width:' + b.w * 100 + '%;height:' + b.h * 100 + '%;background:' + OCC_COL[b.t] + ';border:2px solid #0006;border-radius:4px;box-sizing:border-box;' + (hid ? '' : 'display:none;') + 'cursor:pointer;color:#0008;font:700 14px/1 sans-serif;display:' + (hid ? 'flex' : 'none') + ';align-items:center;justify-content:center">' + ({name: 'الاسم', nerve: 'النيرف', action: 'الاكشن'}[b.t]) + '</div>';
